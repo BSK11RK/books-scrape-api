@@ -1,12 +1,14 @@
-import os
+import os, logging
 import pandas as pd
 from backend.database import SessionLocal, Book
 from backend.config import DATA_DIR
 
+logger = logging.getLogger(__name__)
+
 def save_all_formats(books: list):
 
     if not books:
-        print("No books to save.")
+        logger.warning("保存対象データがありません")
         return
 
     df = pd.DataFrame(books)
@@ -16,14 +18,21 @@ def save_all_formats(books: list):
     json_path = os.path.join(DATA_DIR, "books.json")
     excel_path = os.path.join(DATA_DIR, "books.xlsx")
 
-    # CSV保存
-    df.to_csv(csv_path, index=False, encoding="utf-8-sig")
+    try:
+        # CSV
+        df.to_csv(csv_path, index=False, encoding="utf-8-sig")
 
-    # JSON保存
-    df.to_json(json_path, orient="records", force_ascii=False, indent=2)
+        # JSON
+        df.to_json(json_path, orient="records", force_ascii=False, indent=2)
 
-    # Excel保存
-    df.to_excel(excel_path, index=False)
+        # Excel
+        df.to_excel(excel_path, index=False)
+
+        logger.info("CSV / JSON / Excel 保存完了")
+
+    except Exception as e:
+        logger.error(f"ファイル保存エラー: {e}")
+        return
 
     # DB保存
     db = SessionLocal()
@@ -37,12 +46,11 @@ def save_all_formats(books: list):
             db.add(Book(**book))
 
         db.commit()
+        logger.info("DB保存完了")
 
     except Exception as e:
         db.rollback()
-        print("DB Error:", e)
+        logger.error(f"DB保存エラー: {e}")
 
     finally:
         db.close()
-
-    print("All formats saved successfully.")

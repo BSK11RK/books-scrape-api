@@ -4,21 +4,21 @@ __pycache__/
 *.pyo
 *.pyd
 
-# 仮想環境
+# venv
 venv/
-.env/
+.env
 
-# FastAPI
-*.log
-
-# DB / データファイル
+# データ
 data/
+logs/
+
+# DB
 *.db
 *.sqlite3
+
+# VSCode
+.vscode/
 
 # OS
 .DS_Store
 Thumbs.db
-
-# VSCode
-.vscode/
