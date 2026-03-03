@@ -1,22 +1,15 @@
-# SQLite
+# SQLite → PostgreSQL
 import os
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import declarative_base, sessionmaker
-from backend.config import DATA_DIR
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
-DATABASE_PATH = os.path.join(DATA_DIR, "books.db")
-DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+load_dotenv()
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(bind=engine)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://scraper_user:scraper_pass@db:5432/scraper_db")
+
+engine = create_engine(DATABASE_URL, echo=False)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 Base = declarative_base()
-
-class Book(Base):
-    __tablename__ = "books"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String)
-    price = Column(String)
-    availability = Column(String)
-
-Base.metadata.create_all(bind=engine)

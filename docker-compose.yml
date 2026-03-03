@@ -1,12 +1,30 @@
 services:
-  fastapi-scraper:
+  app:
     build: .
-    container_name: fastapi_scraper
+    container_name: fastapi_app
     ports:
-      - "8001:8000"   
+      - "8001:8000"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     env_file:
       - .env
+    depends_on:
+      - db
     restart: always
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: scraper_user
+      POSTGRES_PASSWORD: scraper_pass
+      POSTGRES_DB: scraper_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:

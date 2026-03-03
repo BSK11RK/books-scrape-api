@@ -1,10 +1,10 @@
-# Pydanticモデル
-from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String, Float
+from backend.database import Base
 
-class UserCreate(BaseModel):
-    username: str
-    password: str
+class Book(Base):
+    __tablename__ = "books"
     
-class UserLogin(BaseModel):
-    username: str
-    password: str
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    price = Column(String)
+    availability = Column(String)

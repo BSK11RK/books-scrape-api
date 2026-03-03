@@ -1,6 +1,7 @@
 import os, logging
 import pandas as pd
-from backend.database import SessionLocal, Book
+from backend.database import SessionLocal
+from backend.models import Book
 from backend.config import DATA_DIR
 
 logger = logging.getLogger(__name__)

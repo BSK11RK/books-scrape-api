@@ -18,6 +18,11 @@ from backend.scraper import scrape_books
 from backend.exporter import save_all_formats
 from backend.graph import generate_graph
 from backend.scheduler import start
+from backend.database import engine
+from backend.models import Base
+
+# テーブル作成
+Base.metadata.create_all(bind=engine)
 
 # ログ初期化
 logger = setup_logging()
