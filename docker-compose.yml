@@ -1,0 +1,12 @@
+services:
+  fastapi-scraper:
+    build: .
+    container_name: fastapi_scraper
+    ports:
+      - "8001:8000"   
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    restart: always

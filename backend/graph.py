@@ -12,17 +12,10 @@ def generate_graph(books: list):
         return
 
     try:
-        df = pd.DataFrame(books)
-
-        df["price"] = (
-            df["price"]
-            .str.replace("£", "", regex=False)
-            .astype(float)
-        )
+        prices = [b["price"] for b in books]
 
         plt.figure(figsize=(10, 6))
-        plt.hist(df["price"], bins=10)
-
+        plt.hist(prices, bins=10)
         plt.title("Book Price Distribution", fontsize=16)
         plt.xlabel("Price", fontsize=12)
         plt.ylabel("Count", fontsize=12)

@@ -1,13 +1,17 @@
 # JWT認証・パスワードハッシュ
+import os
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
 from passlib.context import CryptContext
+from jose import jwt
+from dotenv import load_dotenv
+
+load_dotenv()
 
 SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 fake_users_db = {}
 
