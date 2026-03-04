@@ -6,19 +6,19 @@ __pycache__/
 
 # venv
 venv/
+.env/
+
+# Environment
 .env
 
-# データ
-data/
-logs/
+# Logs
+*.log
 
-# DB
+# SQLite
 *.db
-*.sqlite3
 
 # VSCode
 .vscode/
 
-# OS
-.DS_Store
-Thumbs.db
+# Docker
+*.pid

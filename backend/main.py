@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, asc, desc
 from jose import jwt, JWTError
-
+import os, asyncio
 from backend.logging_config import setup_logging
 import backend.config
 from backend.auth import (
@@ -15,11 +15,11 @@ from backend.auth import (
     add_user,
     get_user
 )
-from backend.scraper import scrape_books
+from backend.scraper import scrape_books_async
 from backend.exporter import save_all_formats
 from backend.graph import generate_graph
 from backend.scheduler import start
-from backend.database import SessionLocal, engine
+from backend.database import SessionLocal, engine, get_db
 from backend.models import Base, Book
 
 # 初期設定
@@ -31,19 +31,12 @@ app = FastAPI(title="JWT Auto Scraper Portfolio")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-# DB依存
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 # 起動時処理
 @app.on_event("startup")
 def startup_event():
     logger.info("アプリ起動")
-    start()
+    if os.getenv("ENV") != "test":
+        start()
 
 # 認証
 @app.post("/register")
@@ -80,44 +73,51 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         logger.error("JWT認証失敗")
         raise HTTPException(status_code=401)
 
-# 重複防止（Upsert処理）
-def save_books_to_db(db: Session):
+# 重複防止 + 非同期スクレイピング保存処理
+def save_books_to_db():
 
-    logger.info("スクレイピング開始")
+    logger.info("=== スクレイピング開始 ===")
 
-    books = scrape_books()
+    db: Session = SessionLocal()
 
-    for b in books:
-        existing = db.query(Book).filter(Book.title == b["title"]).first()
+    try:
+        books = asyncio.run(scrape_books_async())
 
-        if existing:
-            existing.price = b["price"]
-            existing.availability = b["availability"]
-        else:
-            new_book = Book(**b)
-            db.add(new_book)
+        for b in books:
+            existing = db.query(Book).filter(Book.title == b["title"]).first()
 
-    db.commit()
+            if existing:
+                existing.price = b["price"]
+                existing.availability = b["availability"]
+            else:
+                db.add(Book(**b))
 
-    save_all_formats(books)
-    generate_graph(books)
+        db.commit()
 
-    logger.info(f"{len(books)}件のデータを保存完了")
+        save_all_formats(books)
+        generate_graph(books)
+
+        logger.info(f"DB保存完了 件数={len(books)}")
+
+    except Exception as e:
+        logger.error(f"DB保存中にエラー発生: {e}")
+        db.rollback()
+
+    finally:
+        db.close()
 
 # スクレイピング（管理者限定 + バックグラウンド）
 @app.post("/scrape")
 def run_scrape(
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
 
-    # 簡易管理者チェック（adminのみ許可）
     if current_user != "admin":
         logger.warning(f"非管理者がscrape実行: {current_user}")
         raise HTTPException(status_code=403, detail="Admin only")
 
-    background_tasks.add_task(save_books_to_db, db)
+    background_tasks.add_task(save_books_to_db)
 
     logger.info(f"バックグラウンドでスクレイピング開始: {current_user}")
 
@@ -140,7 +140,6 @@ def get_books(
 
     query = db.query(Book)
 
-    # フィルタ
     conditions = []
 
     if min_price is not None:
@@ -152,7 +151,6 @@ def get_books(
     if conditions:
         query = query.filter(and_(*conditions))
 
-    # ソート
     if sort == "price_asc":
         query = query.order_by(asc(Book.price))
     elif sort == "price_desc":
@@ -163,7 +161,8 @@ def get_books(
     books = query.offset(offset).limit(limit).all()
 
     logger.info(
-        f"books取得: user={current_user}, total={total_count}, limit={limit}, offset={offset}"
+        f"books取得 user={current_user} total={total_count} "
+        f"limit={limit} offset={offset}"
     )
 
     return {
@@ -181,7 +180,8 @@ def get_books(
             for b in books
         ],
     }
-
+    
+# ヘルスチェック
 @app.get("/")
 def root():
     return {"message": "JWT Scraper Running"}

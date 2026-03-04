@@ -1,6 +1,8 @@
 fastapi
 uvicorn
-requests
+alembic
+pytest
+httpx
 beautifulsoup4
 pandas
 openpyxl
